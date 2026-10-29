@@ -1,0 +1,908 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- autoimg.cn 有防盗链：带本地 Referer 会 403，这里统一不带 Referer -->
+<meta name="referrer" content="no-referrer">
+<title>汽车之家论坛 · 备份相册</title>
+<style>
+  :root{
+    --bg:#0f1115; --panel:#171a21; --panel2:#1e222b; --line:#2a2f3a;
+    --fg:#e6e8ee; --dim:#9aa3b2; --accent:#ff7a45; --ok:#3ecf8e; --warn:#e5b454;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{background:var(--bg);color:var(--fg);font:14px/1.55 "Segoe UI","Microsoft YaHei",system-ui,sans-serif}
+  a{color:inherit;text-decoration:none}
+  .lnk{color:var(--accent);border-bottom:1px dashed rgba(255,138,61,.5);cursor:pointer}
+  header{position:sticky;top:0;z-index:30;background:rgba(15,17,21,.96);backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--line);padding:12px 20px}
+  .row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  h1{font-size:16px;margin:0;font-weight:600;letter-spacing:.3px}
+  h1 span{color:var(--accent)}
+  .stats{display:flex;gap:8px;flex-wrap:wrap;margin-left:auto;font-size:12px;color:var(--dim)}
+  .chip{background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:3px 10px}
+  .chip b{color:var(--fg);font-weight:600}
+  .tools{margin-top:8px;gap:8px}
+  input[type=search]{background:var(--panel2);border:1px solid var(--line);color:var(--fg);
+    border-radius:8px;padding:7px 11px;width:200px;outline:none}
+  input[type=search]:focus{border-color:var(--accent)}
+  button,.btn{background:var(--panel2);border:1px solid var(--line);color:var(--fg);border-radius:8px;
+    padding:6px 10px;cursor:pointer;font-size:13px;white-space:nowrap}
+  button:hover,.btn:hover{border-color:#3a4150;background:#232833}
+  button.on{border-color:var(--accent);color:var(--accent)}
+  button.primary{border-color:var(--accent);background:#2a1d16;color:var(--accent)}
+  button:disabled{opacity:.5;cursor:default}
+  select{background:var(--panel2);border:1px solid var(--line);color:var(--fg);border-radius:8px;
+    padding:6px 8px;font-size:13px;outline:none}
+  #crawlGroup{display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
+  #fromIdWrap{display:inline-flex;align-items:center}
+  #fromId{background:var(--panel2);border:1px solid var(--line);color:var(--fg);border-radius:8px;
+    padding:6px 8px;width:96px;font-size:12px;outline:none}
+  #fromId:focus{border-color:var(--accent)}
+  #fromId::placeholder{color:#5a6270}
+  .sep{width:1px;height:20px;background:var(--line)}
+  main{padding:14px 20px 60px}
+
+  /* 时间轴 / 分块 */
+  #years{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+  #years button{font-size:12px;padding:3px 9px;border-radius:999px}
+  #years button .n{color:var(--dim);font-size:11px;margin-left:4px}
+  #years button.on .n{color:var(--accent)}
+  #forumbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px}
+  #forumbar .fl{color:var(--dim);font-size:12px}
+  #forumSel{background:var(--panel2);border:1px solid var(--line);color:var(--fg);border-radius:8px;
+    padding:6px 8px;font-size:12px;max-width:340px;outline:none}
+  #forumQuick{display:flex;gap:6px;flex-wrap:wrap}
+  .fchip{background:var(--panel2);border:1px solid var(--line);color:var(--dim);border-radius:999px;
+    padding:3px 9px;font-size:11px;cursor:pointer}
+  .fchip.on{color:var(--fg);border-color:var(--accent);background:#2a1f16}
+  .fname{color:#9fb4d0}
+  .mblock{margin-bottom:26px}
+  /* top 用 JS 量出来的 --hdr，避免工具条换行后月份标题压住卡片 */
+  .mhead{position:sticky;top:var(--hdr,132px);z-index:10;background:var(--bg);
+    display:flex;align-items:baseline;gap:10px;padding:8px 0 10px;font-size:14px;font-weight:600;
+    letter-spacing:.4px;box-shadow:0 -8px 0 var(--bg)}
+  .mhead em{font-style:normal;color:var(--dim);font-weight:400;font-size:12px}
+  .mhead .line{flex:1;height:1px;background:var(--line)}
+  .grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden;
+    display:flex;flex-direction:column;transition:transform .12s,border-color .12s;position:relative}
+  .card:hover{transform:translateY(-2px);border-color:#3d4450}
+  .card.picked{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
+  .pick{position:absolute;left:9px;top:9px;z-index:3;width:18px;height:18px;cursor:pointer;
+    accent-color:var(--accent);opacity:0;transition:opacity .12s}
+  .card:hover .pick,.card.picked .pick{opacity:1}
+  .thumb{aspect-ratio:4/3;background:var(--panel2);position:relative;overflow:hidden}
+  .thumb img{width:100%;height:100%;object-fit:cover;display:block}
+  .thumb .n{position:absolute;right:8px;bottom:8px;background:rgba(0,0,0,.62);border-radius:6px;
+    padding:1px 7px;font-size:12px}
+  .thumb .empty{position:absolute;inset:0;display:grid;place-items:center;color:#5b6270;font-size:30px}
+  .cbody{padding:10px 12px 12px;display:flex;flex-direction:column;gap:6px;flex:1}
+  .title{font-size:13.5px;line-height:1.4;height:2.8em;overflow:hidden;display:-webkit-box;
+    -webkit-line-clamp:2;-webkit-box-orient:vertical}
+  .meta{font-size:11.5px;color:var(--dim);display:flex;gap:8px;flex-wrap:wrap;margin-top:auto}
+  .badge{font-size:10.5px;padding:1px 6px;border-radius:5px;background:#2a2233;color:var(--warn)}
+  .badge.deleted{background:#2c2224;color:#e07b7b}
+  .badge.done{background:#1d2b25;color:var(--ok)}
+  /* 相册视图 */
+  #album{display:none}
+  .ahead{display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap;margin-bottom:14px}
+  .ahead h2{font-size:17px;margin:0 0 6px;line-height:1.4;max-width:900px}
+  .agrid{display:grid;gap:8px;grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}
+  .agrid figure{margin:0;position:relative}
+  .agrid img{width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:8px;background:var(--panel2);
+    cursor:zoom-in;display:block}
+  .agrid figcaption{position:absolute;left:6px;top:6px;font-size:11px;background:rgba(0,0,0,.6);
+    border-radius:5px;padding:0 5px;color:#cfd4de}
+  .agrid .miss{aspect-ratio:1/1;border-radius:8px;border:1px dashed #333a46;cursor:pointer;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+    color:#6b7280;font-size:12px;
+    background:repeating-linear-gradient(45deg,#191c23 0 8px,#1f232b 8px 16px)}
+  .agrid .miss em{font-style:normal;font-size:10px;color:#525a67}
+  .agrid .dup{position:absolute;right:6px;top:6px;font-size:11px;font-weight:600;
+    background:rgba(255,122,69,.88);color:#1a0d06;border-radius:5px;padding:0 6px}
+  .floors{margin-top:26px;border-top:1px solid var(--line);padding-top:16px}
+  .floor{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:11px 14px;margin-bottom:10px}
+  .floor .fh{font-size:12px;color:var(--dim);margin-bottom:6px;display:flex;gap:10px;flex-wrap:wrap}
+  .floor .fh b{color:var(--fg)}
+  .floor .txt{white-space:pre-wrap;word-break:break-word;font-size:13.5px}
+  .floor .imgs{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+  .floor .imgs img{height:64px;width:64px;object-fit:cover;border-radius:6px;cursor:zoom-in}
+  /* 灯箱 */
+  #lb{position:fixed;inset:0;background:rgba(5,6,9,.96);display:none;z-index:100;
+    align-items:center;justify-content:center;flex-direction:column}
+  #lb img{max-width:94vw;max-height:84vh;object-fit:contain;box-shadow:0 10px 50px rgba(0,0,0,.7)}
+  #lb .bar{position:absolute;top:0;left:0;right:0;display:flex;gap:12px;align-items:center;
+    padding:12px 18px;color:var(--dim);font-size:13px}
+  #lb .bar .sp{margin-left:auto;display:flex;gap:10px}
+  #lb .nav{position:absolute;top:50%;transform:translateY(-50%);font-size:38px;color:#8b93a3;
+    cursor:pointer;user-select:none;padding:10px 16px}
+  #lb .nav:hover{color:#fff}
+  #lb .prev{left:8px} #lb .next{right:8px}
+  #lb .cap{position:absolute;bottom:14px;left:0;right:0;text-align:center;color:var(--dim);font-size:12px}
+  .emptybig{color:var(--dim);padding:60px 0;text-align:center}
+  #selbar{display:none;align-items:center;gap:10px;background:#241a14;border:1px solid #4a3225;
+    border-radius:10px;padding:8px 12px;margin-bottom:14px;font-size:13px}
+  #selbar.show{display:flex}
+  #selbar b{color:var(--accent)}
+  /* 爬取任务面板 */
+  #job{position:fixed;right:16px;bottom:16px;width:460px;max-width:calc(100vw - 32px);z-index:80;
+    background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    box-shadow:0 12px 40px rgba(0,0,0,.55);display:none;overflow:hidden}
+  #job.show{display:block}
+  #job .jh{display:flex;align-items:center;gap:8px;padding:9px 12px;border-bottom:1px solid var(--line);
+    font-size:13px}
+  #job .jh b{color:var(--accent)}
+  #job .jh .sp{margin-left:auto;display:flex;gap:6px}
+  #job .jh button{padding:2px 8px;font-size:12px}
+  #job .jbar{height:3px;background:var(--panel2)}
+  #job .jbar i{display:block;height:100%;width:0;background:var(--accent);transition:width .3s}
+  #job pre{margin:0;padding:8px 12px;font:11.5px/1.5 ui-monospace,Consolas,monospace;
+    color:var(--dim);max-height:190px;overflow:auto;white-space:pre-wrap;word-break:break-all}
+  #job pre b{color:var(--ok);font-weight:400}
+  @media (max-width:640px){ .stats{display:none} input[type=search]{width:100%}
+    #job{width:calc(100vw - 24px);right:12px;bottom:12px} }
+</style>
+</head>
+<body>
+<header>
+  <div class="row">
+    <h1>汽车之家论坛 · <span>备份相册</span></h1>
+    <div class="stats" id="stats"></div>
+  </div>
+  <div class="row tools" id="tools">
+    <span id="filters" style="display:contents">
+      <input type="search" id="q" placeholder="搜索标题 / 输入帖子 ID…">
+      <button id="sortBtn" data-sort="new">最新在前</button>
+      <button id="imgBtn" class="on" title="只显示至少有一张真实图片的帖子">隐藏空相册</button>
+      <button id="allBtn">含未抓取</button>
+      <button id="delBtn">含已删</button>
+      <span class="sep"></span>
+      <span style="font-size:12px;color:var(--dim)">时间</span>
+      <select id="fromSel" title="起始月份"></select>
+      <select id="toSel" title="截止月份"></select>
+      <button id="clearTime" style="display:none">清除时间</button>
+      <span class="sep"></span>
+    </span>
+    <span id="crawlGroup">
+      <label id="fromIdWrap" title="游标起点：从这个 topicId 开始抓（留空则从最小 ID 开始；跳号段时填这里）"><input id="fromId" type="text" inputmode="numeric" placeholder="ID 起点" autocomplete="off"></label>
+<button id="locateBtn" title="自动定位到应该续跑的位置并填进左边的框">🎯 定位</button>
+      <button id="crawlBtn" class="primary" title="按 ID 升序抓，凑够这么多篇“真正有内容”的帖子才停">▶ 爬取</button>
+      <select id="batchSel" title="一批要抓到多少篇有效帖（已删帖不计）">
+        <option value="10">10 篇</option>
+        <option value="20" selected>20 篇</option>
+        <option value="50">50 篇</option>
+        <option value="100">100 篇</option>
+        <option value="200">200 篇</option>
+        <option value="500">500 篇</option>
+        <option value="1000">1000 篇有效帖（上限）</option>
+      </select>
+      <button id="refreshBtn">刷新</button>
+    </span>
+  </div>
+  <div id="forumbar">
+    <span class="fl">论坛</span>
+    <select id="forumSel" title="先选论坛，再看这个论坛里的月份和帖子"></select>
+    <button id="listBtn" title="把这个论坛的最新几页列表拉进库（选论坛后才可用）">拉列表</button>
+    <select id="pagesSel" title="拉多少页（每页 50 帖，站点每个论坛最多 1000 页 = 5 万帖）">
+      <option value="3">3 页</option>
+      <option value="20">20 页</option>
+      <option value="100">100 页</option>
+      <option value="1000">1000 页（上限）</option>
+    </select>
+    <button id="refineBtn" title="只拉精华帖：这类帖子稀疏，能往回收好几年">拉精华</button>
+    <button id="seedBtn" title="到 Wayback 存档里找这个论坛 2005–2013 年的老帖，播种后自动解析 + 抓取">存档播种</button>
+    <span class="fl" id="listHint"></span>
+    <span id="forumQuick"></span>
+  </div>
+  <div id="years"></div>
+</header>
+<main>
+  <div id="list">
+    <div id="selbar">
+      <span>已选 <b id="selN">0</b> 帖</span>
+      <button id="expSel" class="primary">导出所选 ↓</button>
+      <button id="expAll">导出筛选结果 ↓</button>
+      <button id="selClear">清空选择</button>
+      <span style="color:var(--dim);font-size:12px" id="selHint"></span>
+    </div>
+    <div id="grid"></div>
+    <div class="emptybig" id="listEmpty" style="display:none">没有匹配的帖子</div>
+    <div class="row" style="margin-top:18px">
+      <button id="moreBtn" style="display:none">加载更多</button>
+    </div>
+  </div>
+
+  <div id="album">
+    <div class="ahead">
+      <div style="flex:1;min-width:280px">
+        <h2 id="aTitle">…</h2>
+        <div class="meta" id="aMeta"></div>
+      </div>
+      <div class="row" style="gap:8px">
+        <a class="btn" id="aOrig" target="_blank" rel="noopener">原帖 ↗</a>
+        <a class="btn" id="aWb" target="_blank" rel="noopener" style="display:none">Wayback 快照 ↗</a>
+        <button id="aFetch" title="重新抓取这篇帖子">抓这个帖</button>
+        <button id="aFix" title="重试这篇帖子里下载失败的图片" style="display:none">补缺失图</button>
+        <button id="aFace">含表情</button>
+        <a class="btn" id="aExp" download>导出此帖 ↓</a>
+<a class="btn" id="aImgZip" title="把这篇文章里的图片打包成 zip 下载（只含已下载到本地的）">导出图片 ⤓</a>
+        <button id="tabImg" class="on">图片</button>
+        <button id="tabTxt">正文</button>
+        <button id="aBack">← 返回列表</button>
+      </div>
+    </div>
+    <div class="agrid" id="aGrid"></div>
+    <div class="emptybig" id="aEmpty" style="display:none">这篇帖子没有图片</div>
+    <div class="floors" id="aFloors"></div>
+  </div>
+</main>
+
+<div id="lb">
+  <div class="bar">
+    <span id="lbIdx"></span>
+    <span class="sp">
+      <a class="btn" id="lbOrig" target="_blank" rel="noopener">原图 ↗</a>
+      <button id="lbClose">关闭 Esc</button>
+    </span>
+  </div>
+  <span class="nav prev" id="lbPrev">‹</span>
+  <img id="lbImg" alt="">
+  <span class="nav next" id="lbNext">›</span>
+  <div class="cap" id="lbCap"></div>
+</div>
+
+<div id="job">
+  <div class="jh">
+    <b id="jobTitle">爬取中</b><span id="jobSub"></span>
+    <span class="sp"><button id="jobStop">停止</button><button id="jobHide">×</button></span>
+  </div>
+  <div class="jbar"><i id="jobBar"></i></div>
+  <pre id="jobLog"></pre>
+</div>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const state = {
+  q:"", sort:"new", onlyImg:true, all:false, deleted:false,
+  from:"", to:"", offset:0, limit:60, total:0, items:[],
+  album:null, lb:{list:[], i:0}, sel:new Set(), blocks:new Map(), monthCounts:{},
+  faces:false, jobTimer:null, jobRunning:false,
+  forum:"all", forums:[]
+};
+
+const FACE_MARKERS = ["/album/smiles/", "/club/images/face/", "/images/face/", "/face/emotion",
+  "/club/smiles/", "/kindeditor/smiles/"];
+// 可以传图片对象（优先用服务端的 is_face），也可以直接传 URL 字符串
+const isFace = (x) => {
+  if (typeof x === "string") return FACE_MARKERS.some(m => x.toLowerCase().includes(m));
+  if (!x) return false;
+  if (x.is_face === 1 || x.is_face === true) return true;
+  return FACE_MARKERS.some(m => (x.url || "").toLowerCase().includes(m));
+};
+
+const fmtBytes = (b) => b > 1<<30 ? (b/1073741824).toFixed(2)+" GB"
+  : b > 1<<20 ? (b/1048576).toFixed(1)+" MB" : Math.round(b/1024)+" KB";
+const fmtDate = (s) => (s || "").slice(0,10);
+const fmtMonth = (m) => m && m.length === 7 ? m.slice(0,4)+"年"+Number(m.slice(5,7))+"月" : (m || "未知时间");
+
+async function jget(url){
+  const r = await fetch(url);
+  if(!r.ok) throw new Error(url+" -> "+r.status);
+  return r.json();
+}
+function esc(s){ return String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+
+/* ---------------- 顶部统计 + 年份轴 ---------------- */
+async function loadStats(){
+  try{
+    const s = await jget("/api/stats" + (state.forum && state.forum !== "all"
+      ? "?forum=" + encodeURIComponent(state.forum) : ""));
+    const tl = s.timeline || [];
+    const span = tl.length ? tl[0].y+"–"+tl[tl.length-1].y : "—";
+    const wb = s.wayback || {};
+    const dup = Math.max(0, (s.images||0) - (s.images_uniq||0));
+    $("#stats").innerHTML =
+      `<span class="chip" title="已导入的论坛目录 / 本地已有数据的论坛">论坛 <b>${s.forums_used||0}</b>/${s.forums_total||0}</span>`+
+    `<span class="chip">帖子 <b>${s.topics}</b></span>`+
+      `<span class="chip">有图 <b>${s.topics_with_img||0}</b></span>`+
+      `<span class="chip">楼层 <b>${s.floors}</b></span>`+
+      `<span class="chip">图片 <b>${s.images||0}</b> / 已下载 <b>${s.images_done||0}</b></span>`+
+      `<span class="chip" title="同一张图在帖内重复出现只算一次">去重 <b>-${dup}</b></span>`+
+      `<span class="chip" title="论坛默认表情，已从相册统计里剔除">表情 <b>${s.faces||0}</b></span>`+
+      `<span class="chip">图片体积 <b>${fmtBytes(s.bytes||0)}</b></span>`+
+      `<span class="chip">年份 <b>${span}</b></span>`+
+      `<span class="chip">Wayback <b>${wb.exists||0}</b> / 提交 <b>${wb.submitted||0}</b></span>`;
+    state.monthCounts = {};
+    (s.months||[]).forEach(m => { state.monthCounts[m.m] = m.n; });
+
+    const y = $("#years"); y.innerHTML = "";
+    tl.forEach(t => {
+      const b = document.createElement("button");
+      b.dataset.y = t.y;
+      b.innerHTML = `${t.y}<span class="n">${t.n}</span>`;
+      b.onclick = () => pickYear(t.y);
+      y.appendChild(b);
+    });
+    syncYearButtons();
+
+    const months = (s.months||[]).map(m => m.m);
+    const fill = (sel, val, label) => {
+      const cur = val;
+      const opts = months.map(m => `<option value="${m}"${m===cur?" selected":""}>${fmtMonth(m)}`
+        + ` (${state.monthCounts[m]||0})</option>`);
+      if(cur && months.indexOf(cur) < 0)
+        opts.unshift(`<option value="${cur}" selected>${fmtMonth(cur)}</option>`);
+      sel.innerHTML = `<option value="">${label}</option>` + opts.join("");
+    };
+    fill($("#fromSel"), state.from, "起始：不限");
+    fill($("#toSel"), state.to, "截止：不限");
+  }catch(e){ console.warn(e); }
+}
+function pickYear(y){
+  if(state.from === y+"-01" && state.to === y+"-12"){ state.from=""; state.to=""; }
+  else { state.from = y+"-01"; state.to = y+"-12"; }
+  $("#fromSel").value = state.from; $("#toSel").value = state.to;
+  syncYearButtons(); loadList();
+}
+function syncYearButtons(){
+  const on = state.from.length===4 ? null : (state.from.endsWith("-01") && state.to.endsWith("-12")
+      && state.from.slice(0,4) === state.to.slice(0,4) ? state.from.slice(0,4) : null);
+  document.querySelectorAll("#years button").forEach(b => b.classList.toggle("on", b.dataset.y === on));
+  $("#clearTime").style.display = (state.from || state.to) ? "" : "none";
+}
+
+/* ---------------- 列表（按月份分块） ---------------- */
+function blockFor(month){
+  let sec = state.blocks.get(month);
+  if(sec) return sec;
+  sec = document.createElement("section");
+  sec.className = "mblock";
+  sec.innerHTML = `<div class="mhead"><span>${fmtMonth(month)}</span>
+      <em>0 帖</em><span class="line"></span></div><div class="grid"></div>`;
+  const blocks = [...state.blocks.keys()];
+  const asc = state.sort === "old";
+  let anchor = null;
+  for(const m of blocks){
+    const cmp = asc ? (m > month) : (m < month);
+    if(cmp){ anchor = state.blocks.get(m); break; }
+  }
+  if(anchor) $("#grid").insertBefore(sec, anchor);
+  else $("#grid").appendChild(sec);
+  state.blocks.set(month, sec);
+  return sec;
+}
+function bumpCount(sec, n){
+  const em = sec.querySelector(".mhead em");
+  const cur = Number((em.textContent||"0").replace(/\D/g,"")) + n;
+  em.textContent = cur + " 帖";
+}
+
+function card(t){
+  const a = document.createElement("a");
+  a.className = "card" + (state.sel.has(t.topic_id) ? " picked" : "");
+  a.href = "#/t/" + t.topic_id;
+  a.dataset.id = t.topic_id;
+  const cover = t.cover
+    ? `<div class="thumb"><img loading="lazy" src="${esc(t.cover)}" alt="" onerror="this.style.display='none'"><span class="n">${t.img_total} 图</span></div>`
+    : `<div class="thumb"><div class="empty">▦</div><span class="n">${t.img_total} 图</span></div>`;
+  const cls = t.status === "deleted" ? "badge deleted" : (t.status === "done" ? "badge done" : "badge");
+  a.innerHTML = `<input type="checkbox" class="pick"${state.sel.has(t.topic_id)?" checked":""}
+      title="选择后批量导出">` + cover + `<div class="cbody">
+      <div class="title">${esc(t.title || "（无标题）")}</div>
+      <div class="meta">
+        <span>${fmtDate(t.publish_at)}</span>
+        <span>${esc(t.author_name||"")}</span>
+        <span>${t.floors||0} 楼</span>
+        ${state.forum === "all" && t.forum_name
+            ? `<span class="fname" title="${esc(t.forum_type)}-${t.forum_id}">${esc(t.forum_name)}</span>` : ""}
+        ${state.sort === "fetched" && t.fetched_at
+            ? `<span title="抓取于 ${esc(t.fetched_at)}">${esc(String(t.fetched_at).slice(5,16))} 抓</span>` : ""}
+        <span class="${cls}">${t.status||""}</span>
+      </div></div>`;
+  const cb = a.querySelector(".pick");
+  cb.onclick = (e) => { e.preventDefault(); e.stopPropagation(); toggleSel(t.topic_id, cb.checked); };
+  return a;
+}
+function toggleSel(id, on){
+  if(on) state.sel.add(id); else state.sel.delete(id);
+  const el = document.querySelector(`.card[data-id="${id}"]`);
+  if(el){ el.classList.toggle("picked", on); const cb = el.querySelector(".pick"); if(cb) cb.checked = on; }
+  syncSel();
+}
+function syncSel(){
+  const n = state.sel.size;
+  $("#selbar").classList.toggle("show", n > 0);
+  $("#selN").textContent = n;
+  $("#selHint").textContent = n > 0 ? "按帖子 ID 升序打包（含图片与文本）" : "";
+}
+
+async function loadForums(){
+  let d;
+  try{ d = await jget("/api/forums"); }catch(e){ return; }
+  state.forums = d.items || [];
+  const sel = $("#forumSel");
+  const withData = state.forums.filter(f => f.n > 0);
+  const opt = (f) => {
+    const o = document.createElement("option");
+    o.value = `${f.bbs_type}-${f.bbs_id}`;
+    o.textContent = f.name || `${f.bbs_type}-${f.bbs_id}`;
+    if(f.n > 0) o.textContent += `（${f.n}）`;
+    if(f.topic_total) o.title = `本坛帖子 ${f.topic_total}`;
+    return o;
+  };
+  const grp = (label, arr) => {
+    if(!arr.length) return null;
+    const g = document.createElement("optgroup");
+    g.label = label;
+    arr.forEach(f => g.appendChild(opt(f)));
+    return g;
+  };
+  sel.innerHTML = "";
+  const all = document.createElement("option");
+  all.value = "all";
+  all.textContent = `全部论坛（${withData.length} 个有数据）`;
+  sel.appendChild(all);
+  [grp("已备份", withData),
+   grp(`地区论坛 ${state.forums.filter(f=>f.bbs_type==="a").length} 个`,
+       state.forums.filter(f=>f.bbs_type==="a" && !f.n)),
+   grp(`车系论坛 ${state.forums.filter(f=>f.bbs_type==="c").length} 个`,
+       state.forums.filter(f=>f.bbs_type==="c" && !f.n)),
+   grp("其他", state.forums.filter(f=>f.bbs_type==="o" && !f.n))
+  ].forEach(g => { if(g) sel.appendChild(g); });
+  sel.value = state.forum;
+  renderForumChips();
+}
+
+function renderForumChips(){
+  const q = $("#forumQuick");
+  q.innerHTML = "";
+  state.forums.filter(f => f.n > 0).slice(0, 8).forEach(f => {
+    const v = `${f.bbs_type}-${f.bbs_id}`;
+    const b = document.createElement("button");
+    b.className = "fchip" + (state.forum === v ? " on" : "");
+    b.textContent = `${f.name || v} ${f.n}`;
+    b.title = `${f.name}：已备份 ${f.n} 篇（${fmtDate(f.earliest)} ~ ${fmtDate(f.latest)}）`
+            + (f.topic_total ? `\n站方口径本坛帖子 ${f.topic_total}` : "");
+    b.onclick = () => setForum(v);
+    q.appendChild(b);
+  });
+}
+
+function forumName(v){
+  if(!v || v === "all") return "全部论坛";
+  const [t, i] = String(v).split("-");
+  const f = state.forums.find(x => x.bbs_type === t && String(x.bbs_id) === i);
+  return f && f.name ? f.name : v;
+}
+
+function setForum(v){
+  state.forum = v || "all";
+  const sel = $("#forumSel");
+  if(sel) sel.value = state.forum;
+  renderForumChips();
+  syncListBtn();
+  if(location.hash.startsWith("#/t/")) location.hash = "";
+  loadStats();
+  loadList();
+}
+
+// 「拉列表」按钮的状态：没选具体论坛时禁用
+function syncListBtn(){
+  const b = $("#listBtn"), hint = $("#listHint");
+  if(!b) return;
+  const on = state.forum && state.forum !== "all";
+  b.disabled = !on;
+  b.style.opacity = on ? "1" : ".45";
+  if(hint) hint.textContent = on ? "" : "← 选个论坛再拉列表";
+}
+
+async function loadList(reset=true){
+  if(reset){
+    state.offset = 0; state.items = []; state.blocks.clear(); $("#grid").innerHTML = "";
+  }
+  const p = new URLSearchParams({ q:state.q, sort:state.sort, limit:state.limit, offset:state.offset });
+  if(state.onlyImg) p.set("only_img","1");
+  if(state.all) p.set("all","1");
+  if(state.deleted) p.set("deleted","1");
+  if(state.from) p.set("from", state.from);
+  if(state.to) p.set("to", state.to);
+  if(state.forum && state.forum !== "all") p.set("forum", state.forum);
+  const d = await jget("/api/topics?"+p.toString());
+  state.total = d.total;
+  // 同一页被重复触发时（例如带 ?forum= 打开时初始化又跑了一遍）会重复插入，这里按 topic_id 去重
+  const seen = new Set(state.items.map(x => x.topic_id));
+  for(const t of d.items){
+    if(seen.has(t.topic_id)) continue;
+    seen.add(t.topic_id);
+    const month = (t.publish_at || "").slice(0,7);
+    const sec = blockFor(month);
+    sec.querySelector(".grid").appendChild(card(t));
+    bumpCount(sec, 1);
+    state.items.push(t);
+  }
+  state.offset += d.items.length;
+  $("#listEmpty").style.display = state.items.length ? "none" : "block";
+  $("#moreBtn").style.display = state.offset < d.total ? "" : "none";
+  $("#moreBtn").textContent = `加载更多（${state.offset}/${d.total}）`;
+  syncYearButtons();
+}
+
+/* ---------------- 导出 ---------------- */
+function exportUrl(params){
+  const p = new URLSearchParams(params);
+  return "/api/export?" + p.toString();
+}
+$("#expSel").onclick = () => {
+  if(!state.sel.size) return;
+  const ids = [...state.sel].sort((a,b)=>a-b);
+  location.href = exportUrl({ ids: ids.join(","), limit: ids.length });
+};
+$("#expAll").onclick = () => {
+  const p = { limit: 300 };
+  if(state.from) p.from = state.from;
+  if(state.to) p.to = state.to;
+  if(state.forum && state.forum !== "all") p.forum = state.forum;
+  if(!state.all) p.only_done = "1";
+  if(state.onlyImg) p.only_img = "1";
+  location.href = exportUrl(p);
+};
+$("#selClear").onclick = () => { state.sel.clear(); document.querySelectorAll(".card.picked").forEach(c=>{
+  c.classList.remove("picked"); const cb=c.querySelector(".pick"); if(cb) cb.checked=false; }); syncSel(); };
+
+/* ---------------- 相册视图 ---------------- */
+function renderAlbumGrid(){
+  const d = state.album;
+  if(!d) return;
+  const real = d.images.filter(i => !isFace(i));
+  const faces = d.images.filter(i => isFace(i));
+  const show = state.faces ? real.concat(faces) : real;
+  const ok = show.filter(x => !x.status || x.status === "done");
+  const g = $("#aGrid"); g.innerHTML = "";
+  show.forEach((im) => {
+    const fig = document.createElement("figure");
+    const place = (reason) => {
+      const ph = document.createElement("div");
+      ph.className = "miss";
+      ph.innerHTML = `<span>缺失</span><em>${esc(reason)}</em>`;
+      ph.title = (reason ? "原因：" + reason + "\n" : "") + im.url;
+      ph.onclick = () => window.open(im.url, "_blank");
+      return ph;
+    };
+    // 已下载在本地就直接用；还没落盘 / 下载失败的，先试远端原图，加载不出来才显示占位
+    const img = document.createElement("img");
+    img.loading = "lazy"; img.alt = "";
+    img.src = im.src;
+    img.onerror = () => { if(img.parentNode) img.replaceWith(place(im.error || "加载失败")); };
+    img.onclick = () => openLb(show.map(x => x.src), show.indexOf(im));
+    fig.appendChild(img);
+    const cap = document.createElement("figcaption");
+    cap.textContent = isFace(im.url) ? `表情 @${im.floor_no} 楼`
+      : (im.floor_no === 0 ? "楼主" : `@${im.floor_no} 楼`);
+    fig.appendChild(cap);
+    if((im.dup||1) > 1){
+      const b = document.createElement("span");
+      b.className = "dup";
+      b.textContent = "×" + im.dup;
+      b.title = "同一张图出现 " + im.dup + " 次：" +
+        im.floors.map(f => f === 0 ? "楼主" : "@" + f + " 楼").join("、");
+      fig.appendChild(b);
+    }
+    g.appendChild(fig);
+  });
+  const missing = show.filter(x => x.status && x.status !== "done").length;
+  $("#aFix").style.display = missing ? "" : "none";
+  $("#aFix").textContent = `补缺失图（${missing}）`;
+  $("#aEmpty").style.display = show.length ? "none" : "block";
+  $("#aEmpty").textContent = real.length ? "这篇帖子没有图片" : "这篇帖子只有表情，没有图片";
+  $("#aFace").classList.toggle("on", state.faces);
+  const lbn = new URLSearchParams(location.search).get("lb");
+  if(lbn !== null && show.length) openLb(show.map(x => x.src), parseInt(lbn, 10) || 0);
+}
+
+async function openAlbum(id){
+  const d = await jget("/api/topic/"+id+"?faces=1");
+  state.album = d;
+  $("#list").style.display = "none";
+  $("#album").style.display = "block";
+  $("#filters").style.display = "none";
+  $("#years").style.display = "none";
+  $("#forumbar").style.display = "none";
+  const t = d.topic;
+  const real = d.images.filter(i => !isFace(i));
+  const faces = d.images.filter(i => isFace(i));
+  const dup = real.reduce((s,i)=>s + ((i.dup||1)-1), 0);
+  $("#aTitle").textContent = t.title || "（无标题）";
+  $("#aMeta").innerHTML = `<span>ID ${t.topic_id}</span><span>${fmtDate(t.publish_at)}</span>`
+    + `<span>${esc(t.author_name||"")}</span>`
+    + `<span>${d.floors.length} 楼 / ${real.length} 图`
+    + (dup ? `（另有 ${dup} 次重复已合并）` : "") + `</span>`
+    + (faces.length ? `<span title="默认表情不计入相册">表情 ${faces.length} 已隐藏</span>` : "")
+    + (t.forum_type ? `<a class="lnk" id="aForum" data-forum="${t.forum_type}-${t.forum_id}" title="只看这个论坛">${esc(forumName(t.forum_type+"-"+t.forum_id))}</a>` : "")
+    + `<span>${t.status||""}</span>`;
+  const canon = t.hash ? `https://club.autohome.com.cn/bbs/thread/${t.hash}/${t.topic_id}-1.html` : "";
+  $("#aOrig").href = canon || (t.url||"#");
+  $("#aExp").href = exportUrl({ ids: t.topic_id, limit: 1 });
+  $("#aImgZip").href = `/api/album_zip?topic=${t.topic_id}`;
+  $("#aImgZip").style.display = (real.length || (d.images||[]).length) ? "" : "none";
+  $("#aFetch").classList.toggle("primary", t.status !== "done");
+  const wb = d.wayback || {};
+  if(wb.snapshot_ts){
+    $("#aWb").style.display = "";
+    $("#aWb").href = `https://web.archive.org/web/${wb.snapshot_ts}/${canon||t.url}`;
+  } else { $("#aWb").style.display = "none"; }
+
+  renderAlbumGrid();
+
+  const fl = $("#aFloors"); fl.innerHTML = "";
+  d.floors.forEach(f => {
+    const pics = (f.images||[]).filter(u => !isFace(u));
+    if(!f.text && !pics.length) return;
+    const el = document.createElement("div");
+    el.className = "floor";
+    const head = `<div class="fh"><b>${f.floor_no===0?"楼主":"@"+f.floor_no+" 楼"}</b>`
+      + `<span>${esc(f.author||"")}</span><span>${esc(f.posted_at||"")}</span></div>`;
+    const txt = `<div class="txt">${esc(f.text||"")}</div>`;
+    const imgs = pics.length
+      ? `<div class="imgs">${pics.map(u=>`<img loading="lazy" src="${encodeURI(u)}">`).join("")}</div>` : "";
+    el.innerHTML = head + txt + imgs;
+    el.querySelectorAll(".imgs img").forEach((im,k)=>im.onclick=()=>openLb(pics, k));
+    fl.appendChild(el);
+  });
+  window.scrollTo(0,0);
+  $("#aGrid").style.display="grid"; $("#aFloors").style.display="none";
+  $("#tabImg").classList.add("on"); $("#tabTxt").classList.remove("on");
+}
+
+function closeAlbum(){
+  $("#album").style.display="none";
+  $("#list").style.display="block";
+  $("#filters").style.display="contents";
+  $("#years").style.display="";
+  $("#forumbar").style.display="";
+  state.album = null;
+  history.replaceState(null,"","#/");
+}
+
+function openLb(list, i){
+  list = (list || []).filter(Boolean);
+  if(!list.length) return;
+  state.lb = { list, i: Math.max(0, Math.min(i || 0, list.length - 1)) };
+  $("#lb").style.display = "flex";
+  renderLb();
+}
+function renderLb(){
+  const {list, i} = state.lb;
+  const src = list[i] || "";
+  const img = $("#lbImg");
+  $("#lbIdx").textContent = `${i+1} / ${list.length}`;
+  $("#lbOrig").href = src;
+  $("#lbCap").textContent = src.split("/").pop() || "";
+  img.onerror = () => {
+    img.removeAttribute("src");
+    img.style.minHeight = "120px";
+    $("#lbCap").textContent = "这张图打不开（可能是外链防盗链或已失效），点「原图 ↗」用新窗口试";
+  };
+  img.onload = () => { img.style.minHeight = ""; };
+  img.src = src;
+}
+function lbStep(d){
+  const {list, i} = state.lb;
+  if(!list.length) return;
+  state.lb.i = (i + d + list.length) % list.length;
+  renderLb();
+}
+
+/* ---------------- 爬取任务 ---------------- */
+function renderJob(d){
+  state.jobRunning = d.running;
+  const box = $("#job");
+  box.classList.add("show");
+  const name = {fetch:"抓取帖子", images:"下载图片", crawl:"CDX 播种 + 抓取"}[d.kind] || d.kind || "任务";
+  $("#jobTitle").textContent = d.running ? name + " 进行中…" : name + " 已结束";
+  const pct = d.total ? Math.round(d.done / d.total * 100) : (d.running ? 8 : 100);
+  $("#jobBar").style.width = (d.running && !d.total ? 8 : pct) + "%";
+  $("#jobSub").textContent = d.total ? ` ${d.done}/${d.total}`
+    : (d.running ? " 启动中" : (d.code === 0 ? " 完成" : " 退出码 " + d.code));
+  const log = $("#jobLog");
+  log.innerHTML = (d.lines||[]).slice(-40).map(l =>
+    /done|完成/.test(l) ? `<b>${esc(l)}</b>` : esc(l)).join("\n");
+  log.scrollTop = log.scrollHeight;
+  $("#jobStop").disabled = !d.running;
+}
+async function pollJob(){
+  clearTimeout(state.jobTimer);
+  try{
+    const d = await jget("/api/job");
+    if(!d.running && !d.started && !state.jobShown) return;   // 没有新任务就不弹面板
+    renderJob(d);
+    state.jobShown = true;
+    if(d.running){ state.jobTimer = setTimeout(pollJob, 1200); return; }
+    if(d.started){ loadStats(); loadList(); 
+      if(state.album) openAlbum(state.album.topic.topic_id); }
+  }catch(e){ console.warn(e); }
+}
+async function startJob(kind, extra={}){
+  if(state.jobRunning) { pollJob(); return; }
+  const p = new URLSearchParams(Object.assign({kind}, extra));
+  const r = await fetch("/api/job?"+p.toString(), {method:"POST"});
+  const d = await r.json();
+  if(d.error){ alert(d.error); return; }
+  renderJob(d);
+  state.jobTimer = setTimeout(pollJob, 800);
+}
+
+/* ---------------- 事件 ---------------- */
+$("#q").addEventListener("input", e => { state.q = e.target.value.trim(); clearTimeout(window._t);
+  window._t = setTimeout(()=>loadList(), 260); });
+$("#sortBtn").onclick = () => {
+  const SORTS = [["new", "最新在前"], ["old", "最早在前"], ["fetched", "最近抓取"]];
+  const idx = Math.max(0, SORTS.findIndex(s => s[0] === state.sort));
+  const nx = SORTS[(idx + 1) % SORTS.length];
+  state.sort = nx[0];
+  $("#sortBtn").textContent = nx[1];
+  $("#sortBtn").classList.toggle("on", state.sort !== "new");
+  loadList();
+};
+$("#imgBtn").onclick = () => { state.onlyImg = !state.onlyImg;
+  $("#imgBtn").classList.toggle("on", state.onlyImg); loadList(); };
+$("#allBtn").onclick = () => { state.all = !state.all;
+  $("#allBtn").classList.toggle("on", state.all); loadList(); };
+$("#delBtn").onclick = () => { state.deleted = !state.deleted;
+  $("#delBtn").classList.toggle("on", state.deleted); loadList(); };
+$("#refreshBtn").onclick = () => { loadStats(); loadList(); };
+$("#fromSel").onchange = (e) => { state.from = e.target.value; syncYearButtons(); loadList(); };
+$("#toSel").onchange = (e) => { state.to = e.target.value; syncYearButtons(); loadList(); };
+$("#clearTime").onclick = () => { state.from = ""; state.to = "";
+  $("#fromSel").value = ""; $("#toSel").value = ""; syncYearButtons(); loadList(); };
+$("#moreBtn").onclick = () => loadList(false);
+$("#aBack").onclick = closeAlbum;
+$("#tabImg").onclick = () => { $("#aGrid").style.display="grid"; $("#aFloors").style.display="none";
+  $("#tabImg").classList.add("on"); $("#tabTxt").classList.remove("on"); };
+$("#tabTxt").onclick = () => { $("#aGrid").style.display="none"; $("#aFloors").style.display="block";
+  $("#tabTxt").classList.add("on"); $("#tabImg").classList.remove("on"); };
+$("#lbClose").onclick = () => $("#lb").style.display = "none";
+$("#lbPrev").onclick = () => lbStep(-1);
+$("#lbNext").onclick = () => lbStep(1);
+$("#lb").addEventListener("click", e => { if(e.target.id === "lb") $("#lb").style.display="none"; });
+document.addEventListener("keydown", e => {
+  if($("#lb").style.display === "flex"){
+    if(e.key === "Escape") $("#lb").style.display = "none";
+    if(e.key === "ArrowLeft") lbStep(-1);
+    if(e.key === "ArrowRight") lbStep(1);
+  } else if(e.key === "Escape" && state.album){ closeAlbum(); }
+});
+$("#crawlBtn").onclick = () => {
+  const n = Number($("#batchSel").value) || 20;
+  const from = ($("#fromId").value || "").trim();
+  if(from && !/^\d+$/.test(from)){ alert("游标起点要填数字（topicId），留空表示从最小 ID 开始"); return; }
+  const f = (state.forum && state.forum !== "all") ? state.forum : "";
+  startJob("fetch", { limit:n, order:"id-asc", rps:"4", from_id: from || "0",
+    ...(f ? { forum: f } : {}) });
+};
+$("#locateBtn").onclick = async () => {
+  const b = $("#locateBtn");
+  b.disabled = true; b.textContent = "定位中…";
+  try{
+    const d = await jget("/api/resume");
+    $("#fromId").value = d.suggest;
+    localStorage.setItem("autohome.fromId", String(d.suggest));
+    const head = d.head && d.head.title ? `\n最早待抓：${d.head.publish_at || "?"} ${d.head.title.slice(0, 30)}` : "";
+    const why = d.queue_n
+      ? `待抓 ${d.queue_n} 帖，最早一个 ID 是 ${d.queue_min}`
+      : `队列已抓空，扫描进度到 ${d.scanned_max || 0}，接着往下扫`;
+    alert(`定位到 ${d.suggest}（${d.reason}）\n${why}`
+      + `\n已抓 ${d.done} 篇 / 已判失效 ${d.deleted} 篇 / 扫过 ${d.scanned_n} 个号${head}`);
+    b.textContent = "🎯 定位";
+  }catch(err){
+    alert("定位失败：" + err.message);
+    b.textContent = "🎯 定位";
+  }finally{ b.disabled = false; }
+};
+$("#jobStop").onclick = async () => {
+  await fetch("/api/job/stop", {method:"POST"});
+  pollJob();
+};
+$("#jobHide").onclick = () => { $("#job").classList.remove("show"); };
+$("#aMeta").addEventListener("click", e => {
+  const a = e.target.closest("#aForum");
+  if(a){ e.preventDefault(); setForum(a.dataset.forum); }
+});
+$("#aFace").onclick = () => { state.faces = !state.faces; renderAlbumGrid(); };
+$("#aFetch").onclick = () => {
+  if(!state.album) return;
+  startJob("fetch", { topic: state.album.topic.topic_id, rps:"4" });
+};
+$("#aFix").onclick = () => {
+  if(!state.album) return;
+  startJob("images", { topic: state.album.topic.topic_id, limit: 600, rps: 3 });
+};
+
+// 月份标题吸顶的偏移量 = 顶栏真实高度（工具条一行放不下会换行，写死会压住卡片）
+function syncHeaderHeight(){
+  const h = document.querySelector("header");
+  if(!h) return;
+  const px = Math.round(h.getBoundingClientRect().height);
+  document.documentElement.style.setProperty("--hdr", px + "px");
+}
+window.addEventListener("resize", syncHeaderHeight);
+document.addEventListener("DOMContentLoaded", syncHeaderHeight);
+setInterval(syncHeaderHeight, 1500);
+
+function route(){
+  const m = location.hash.match(/^#\/t\/(\d+)/);
+  if(m) openAlbum(Number(m[1])).catch(e=>{ $("#aTitle").textContent = "加载失败："+e.message; });
+  else if(state.album) closeAlbum();
+  else { $("#list").style.display="block"; $("#album").style.display="none";
+         $("#filters").style.display="contents"; $("#years").style.display=""; $("#forumbar").style.display=""; }
+}
+
+window.addEventListener("hashchange", route);
+const uq = new URLSearchParams(location.search);
+if(uq.get("from")) state.from = uq.get("from");
+if(uq.get("to")) state.to = uq.get("to");
+if(uq.get("forum")) state.forum = uq.get("forum");
+// 游标起点记在本地，下次打开还填着上次用的值
+const _fid = localStorage.getItem("autohome.fromId");
+if(_fid) $("#fromId").value = _fid;
+$("#forumSel").addEventListener("change", e => setForum(e.target.value));
+
+// 拉某个论坛的列表：不选论坛时按钮禁用
+$("#listBtn").onclick = () => {
+  if(!state.forum || state.forum === "all"){
+    alert("先在左边选一个论坛，再点「拉列表」");
+    return;
+  }
+  startJob("list", { forum: state.forum, pages: String(state.listPages || 3), rps: "3" });
+};
+$("#refineBtn").onclick = () => {
+  if(!state.forum || state.forum === "all"){
+    alert("先在左边选一个论坛，再点「拉精华」");
+    return;
+  }
+  startJob("list", { forum: state.forum, pages: String(state.listPages || 3),
+                     mode: "refine", rps: "2" });
+};
+$("#seedBtn").onclick = () => {
+  if(!state.forum || state.forum === "all"){
+    alert("先在左边选一个论坛，再点「存档播种」");
+    return;
+  }
+  if(!confirm("到 web.archive.org 的 CDX 里找 " + forumName(state.forum) +
+              " 2005–2013 年的老帖子？\n\n会先查存档（慢，每次 20–60 秒），" +
+              "然后把找到的帖子解析 + 抓回来。")) return;
+  startJob("crawl", { forum: state.forum, from_year: "2005", to_year: "2013",
+                      limit: "200", rps: "2" });
+};
+$("#pagesSel").addEventListener("change", e => {
+  state.listPages = parseInt(e.target.value, 10) || 3;
+  localStorage.setItem("autohome.listPages", String(state.listPages));
+});
+state.listPages = parseInt(localStorage.getItem("autohome.listPages") || "3", 10) || 3;
+$("#pagesSel").value = String(state.listPages);
+$("#fromId").addEventListener("change", e => {
+  const v = (e.target.value || "").trim();
+  if(v) localStorage.setItem("autohome.fromId", v); else localStorage.removeItem("autohome.fromId");
+});
+if(uq.get("only_img") === "0"){ state.onlyImg = false; $("#imgBtn").classList.remove("on"); }
+if(uq.get("sort") === "old"){  state.sort = "old";
+  $("#sortBtn").textContent = "最早在前";
+  $("#sortBtn").classList.add("on");
+}else if(uq.get("sort") === "fetched"){
+  state.sort = "fetched";
+  $("#sortBtn").textContent = "最近抓取";
+  $("#sortBtn").classList.add("on");
+}
+loadForums().then(syncListBtn);
+loadStats();
+if(!location.hash.startsWith("#/t/")) loadList();
+route();
+pollJob();
+// 截图/调试用：?y=1200 打开后滚到这里
+const _y = Number(uq.get("y") || 0);
+if(_y > 0) setTimeout(() => window.scrollTo(0, _y), 600);
+</script>
+</body>
+</html>

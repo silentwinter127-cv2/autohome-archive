@@ -1,0 +1,10 @@
+# 数据与运行产物（不进版本库）
+data/
+exports/
+*.log
+gallery/server.pid
+__pycache__/
+*.pyc
+
+# 一次性修补/排查脚本
+_*.py
