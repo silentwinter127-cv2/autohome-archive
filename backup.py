@@ -559,6 +559,33 @@ def parse_thread_legacy(page_html: str) -> dict:
     }
 
 
+def parse_bbsinfo(page_html: str) -> dict | None:
+    """取帖子真正所属的论坛：优先 __BBSINFO__，老模板则看论坛链接。
+
+    入库时的论坛来自调用方（列表页/种子），可能和帖子实际归属不一致
+    （按 topicId 直抓、或帖子被移动过），这里以页面自述为准。
+    """
+    m = re.search(r"__BBSINFO__\]?\s*=\s*(\{.*?\})", page_html, re.S)
+    if m:
+        blob = m.group(1)
+        bid = re.search(r'"bbsId"\s*:\s*(\d+)', blob)
+        bt = re.search(r'"bbs"\s*:\s*"([a-z])"', blob)
+        bn = re.search(r'"bbsName"\s*:\s*"([^"]*)"', blob)
+        if bid and bt:
+            return {"bbs": bt.group(1), "id": int(bid.group(1)),
+                    "name": bn.group(1) if bn else ""}
+
+    pairs = re.findall(r"forum-([a-z])-(\d{1,7})", page_html)
+    if pairs:
+        bbs, fid = max(set(pairs), key=pairs.count)
+        name = ""
+        mt = re.search(r"<title>.*?_([^_]+论坛)_", page_html, re.S)
+        if mt:
+            name = mt.group(1).strip()
+        return {"bbs": bbs, "id": int(fid), "name": name}
+    return None
+
+
 def parse_thread_new(page_html: str) -> dict:
     """新版模板解析：正文在 div.post-container，回复在 li.js-reply-floor-container。
 
@@ -681,6 +708,14 @@ def fetch_topic(store: Store, http: Http, row: sqlite3.Row,
 
         save_gz(data_dir / "raw" / str(topic_id) / f"{page:03d}.html.gz", body)
         _store_page(store, topic_id, page, parsed)
+
+        if page == 1:
+            info = parse_bbsinfo(body)
+            if info:
+                store.exec("UPDATE topics SET forum_type=?, forum_id=? WHERE topic_id=?",
+                           (info["bbs"], info["id"], topic_id))
+                store.upsert_forum(info["bbs"], info["id"],
+                                   name=info.get("name") or None)
 
         if not pages_total:
             pages_total = parsed.get("pages", 1)
