@@ -603,6 +603,7 @@ function renderAlbumGrid(){
 }
 
 async function openAlbum(id){
+  if(!state.forums.length) await loadForums();   // 论坛名要查目录，别显示成 a-100007
   const d = await jget("/api/topic/"+id+"?faces=1");
   state.album = d;
   $("#list").style.display = "none";
